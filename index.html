@@ -966,29 +966,14 @@
             y: ((interpolatedY + gridSize) % gridSize) * cellSize + cellSize / 2
           };
         });
-        const animatedPoints = rawPoints.map((point, index) => {
-          const before = rawPoints[Math.max(0, index - 1)];
-          const after = rawPoints[Math.min(rawPoints.length - 1, index + 1)];
-          let tangentX = after.x - before.x;
-          let tangentY = after.y - before.y;
-          const tangentLength = Math.hypot(tangentX, tangentY) || 1;
-          tangentX /= tangentLength;
-          tangentY /= tangentLength;
-          const growth = Math.max(0, snake.length - 3);
-          const waveAmount = Math.min(.26, .024 + growth * .014);
-          const waveCycles = Math.max(1, snake.length * 3);
-          const wave = Math.sin(visualTime - (index / Math.max(1, snake.length - 1)) * Math.PI * 2 * waveCycles) * cellSize * waveAmount;
-          const fade = Math.min(1, .55 + growth * .06);
-          return {
-            x: point.x + (-tangentY * wave * fade),
-            y: point.y + (tangentX * wave * fade)
-          };
-        });
-
         const points = [];
-        for (let i = 0; i < animatedPoints.length - 1; i += 1) {
-          const start = animatedPoints[i];
-          const end = animatedPoints[i + 1];
+        const growth = Math.max(0, snake.length - 3);
+        const waveAmount = Math.min(.13, .014 + growth * .0045);
+        const waveCycles = Math.max(1, snake.length * 0.7);
+        const lastIndex = Math.max(1, rawPoints.length - 1);
+        for (let i = 0; i < rawPoints.length - 1; i += 1) {
+          const start = rawPoints[i];
+          const end = rawPoints[i + 1];
           const distance = Math.hypot(end.x - start.x, end.y - start.y);
           if (Math.abs(end.x - start.x) > canvas.width / 2 ||
               Math.abs(end.y - start.y) > canvas.height / 2) {
@@ -998,14 +983,25 @@
           const samples = Math.max(8, Math.ceil(distance / (cellSize / 8)));
           for (let sample = 0; sample < samples; sample += 1) {
             const ratio = sample / samples;
+            const x = start.x + (end.x - start.x) * ratio;
+            const y = start.y + (end.y - start.y) * ratio;
+            let tangentX = end.x - start.x;
+            let tangentY = end.y - start.y;
+            const tangentLength = Math.hypot(tangentX, tangentY) || 1;
+            tangentX /= tangentLength;
+            tangentY /= tangentLength;
+            const pathPosition = (i + ratio) / lastIndex;
+            const wave = Math.sin(
+              visualTime + pathPosition * Math.PI * 2 * waveCycles
+            ) * cellSize * waveAmount;
             points.push({
-              x: start.x + (end.x - start.x) * ratio,
-              y: start.y + (end.y - start.y) * ratio
+              x: x - tangentY * wave,
+              y: y + tangentX * wave
             });
           }
         }
-        if (animatedPoints.length) {
-          points.push(animatedPoints[animatedPoints.length - 1]);
+        if (rawPoints.length) {
+          points.push(rawPoints[rawPoints.length - 1]);
         }
         points.reverse();
 
